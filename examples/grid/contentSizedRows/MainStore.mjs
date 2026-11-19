@@ -5,11 +5,11 @@ import {createSeededRandom} from '../../../src/util/Random.mjs';
 const
     COUNTRIES = ['Brazil', 'Canada', 'Germany', 'India', 'Japan', 'Kenya', 'Mexico', 'Norway', 'Spain', 'Vietnam'],
     NOTES     = [
-        'Verified in customer account.',
-        'Awaiting billing team review.',
+        'Verified with customer account.',
+        'Awaiting customer verification.',
         'Customer confirmed resolved.',
         'Escalated to tier-2 support.',
-        'Pending upstream payment processor fix.',
+        'Pending follow-up review.',
         'Monitoring for recurrence after fix.'
     ],
     OWNERS   = ['Alex', 'Blake', 'Casey', 'Dana', 'Jordan', 'Morgan', 'Riley', 'Sam'],
@@ -34,7 +34,7 @@ const
                         // Tier 1 (~170-200 chars)
                         'Steps to reproduce: add seats to an active annual plan two months before renewal. Navigate to Billing and download the upcoming invoice PDF. The seat count shown matches the original purchase rather than the current subscription state.',
                         // Tier 2 (~260-310 chars)
-                        'The customer added three seats in September on an annual plan renewing in November. The invoice generated at renewal quotes the September seat count rather than November\'s active total.\n\nBilling records confirm the seat additions posted correctly to the account ledger. The invoice rendering pipeline reads the initial contract quantity rather than the current subscription record, producing the incorrect figure.'
+                        'The customer added three seats in September on an annual plan renewing in November. The invoice generated at renewal quotes the September seat count rather than November\'s active total.\n\nBilling records confirm the seat additions posted correctly to the account ledger. The invoice generation service reads the initial contract quantity rather than the current subscription record, producing the incorrect figure.'
                     ]
                 },
                 {
@@ -109,7 +109,7 @@ const
                     details: [
                         'Customer\'s account holds 68,000 records; every full export attempt ends with a gateway timeout.',
                         'Steps to reproduce: on an account with more than fifty thousand active records, navigate to the export panel and select all record types with no date filter. Submit the export request and observe the job status. After approximately one hundred and twenty seconds the status transitions to failed with a timeout message.',
-                        'The customer\'s account contains 68,000 records across six record types. Every export attempt without a date filter times out at the two-minute mark regardless of which record types are selected.\n\nThe export worker fetches all matching records into memory before writing the CSV stream, causing excessive heap allocation. Replacing the in-memory aggregation with a streaming cursor that writes rows in batches eliminates the timeout for arbitrarily large accounts.'
+                        'The customer\'s account contains 68,000 records across six record types. Every export attempt without a date filter times out at the two-minute mark regardless of which record types are selected.\n\nThe export service attempts to process all matching records in a single memory buffer rather than streaming them in batches. Updating the export service to stream records progressively resolves the timeout for large customer accounts.'
                     ]
                 }
             ]
@@ -135,12 +135,12 @@ const
                     summaries: [
                         'The weekly digest email pipeline displays event timestamps in UTC rather than the configured timezone.',
                         'The weekly digest email pipeline displays event timestamps in UTC rather than the customer\'s configured timezone. Customers in non-UTC regions see activity listed at incorrect local times, making the digest difficult to interpret.',
-                        'The weekly digest email pipeline displays event timestamps in UTC rather than the customer\'s configured timezone. Customers in non-UTC regions see activity listed at incorrect local times, making the digest difficult to interpret. The account settings panel shows the correct timezone preference, so the error originates in the email rendering path.'
+                        'The weekly digest email pipeline displays event timestamps in UTC rather than the customer\'s configured timezone. Customers in non-UTC regions see activity listed at incorrect local times, making the digest difficult to interpret. The account settings panel shows the correct timezone preference, so the error originates in the email delivery path.'
                     ],
                     details: [
                         'Customer in Tokyo (UTC+9) sees digest events listed nine hours behind their actual local occurrence times.',
                         'Steps to reproduce: set the account timezone to a non-UTC region, generate activity during the week, and open the following weekly digest email. Compare the timestamps in the email against the timestamps shown in the in-app activity feed. The email renders UTC values while the app feed renders correctly localised times.',
-                        'The customer\'s account timezone is set to Asia/Tokyo. Activity recorded at 10:00 JST appears as 01:00 in the digest email, confirming the email renderer uses raw UTC values.\n\nThe digest email template retrieves activity records with their UTC timestamps and passes them directly to the template engine without timezone conversion. Applying the per-account timezone preference during template rendering resolves the mismatch for all non-UTC customers.'
+                        'The customer\'s account timezone is set to Asia/Tokyo. Activity recorded at 10:00 JST appears as 01:00 in the digest email, confirming the notification service formats dates using raw UTC values.\n\nThe digest email service retrieves activity records with their UTC timestamps and formats them without applying the customer\'s account timezone. Applying the account timezone preference before formatting the digest email resolves the mismatch for all non-UTC customers.'
                     ]
                 }
             ]
@@ -251,7 +251,7 @@ const
                     details: [
                         'Customer disabled email digests and saved preferences; after refreshing, digests were re-enabled.',
                         'Steps to reproduce: navigate to Account Settings and change two or more notification preferences. Click Save and observe the success confirmation. Reload the page and inspect the notification preference toggles. The toggles have reverted to their state before the save action.',
-                        'The customer disabled the weekly digest and the mention notification toggles in Account Settings. After saving, the page confirmed success. A page reload showed both toggles re-enabled, confirming the changes did not persist.\n\nThe preference save handler writes the updated values to the session store and returns a success response, but the persistent database write is deferred to a background task that fails silently when the session store expires before the task executes. Writing the preference update synchronously to the database before returning the success response guarantees persistence across page loads.'
+                        'The customer disabled the weekly digest and the mention notification toggles in Account Settings. After saving, the page confirmed success. A page reload showed both toggles re-enabled, confirming the changes did not persist.\n\nThe preference save handler updates temporary session state and displays success, but the permanent account update fails to complete before the session closes. Ensuring the preference update writes permanently to the account profile before confirming success resolves the persistence issue across page reloads.'
                     ]
                 },
                 {

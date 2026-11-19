@@ -1131,8 +1131,8 @@ test.describe('Content-sized rows example', () => {
 
             const before = await buildSnapshot(worker, viewId);
 
-            // Assert that all 10,000 records pass scenario coherence and field validation
-            expect(before.invalidRecords, 'all 10,000 records pass scenario coherence and field validation').toEqual([]);
+            // Assert that all 10,000 records pass schema and text shape validation
+            expect(before.invalidRecords, 'all 10,000 records pass schema and text shape validation').toEqual([]);
             expect(before.count, 'full dataset count is 10,000').toBe(COUNT);
 
             // Detailed assertions on sampled records
